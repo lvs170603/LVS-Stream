@@ -145,8 +145,8 @@ const channels = [
     },
     {
         name: "9XM Music",
-        icon: "Live Tv Icons/9XM Music.png",
-        url: "",
+        icon: "Live Tv Icons/9XM.png",
+        url: "https://d35j504z0x2vu2.cloudfront.net/v1/manifest/0bc8e8376bd8417a1b6761138aa41c26c7309312/9xm/23886666-8fc5-470f-aab1-bd637ed607b1/3.m3u8",
         category: "Music"
     }
 ];
