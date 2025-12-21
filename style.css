@@ -287,3 +287,91 @@ body {
     margin-top: 16px;
     min-height: 20px;
 }
+
+/* Responsive Design (Mobile) */
+@media (max-width: 768px) {
+    body {
+        height: 100vh;
+        /* create context for absolute positioning if needed */
+        position: relative; 
+    }
+
+    .app-container {
+        flex-direction: column;
+    }
+
+    /* Move Sidebar (Channel List) to bottom */
+    .sidebar {
+        width: 100%;
+        order: 2;
+        flex: 1; /* Take remaining height */
+        border-right: none;
+        border-top: var(--glass-border);
+        min-height: 0; /* Important for flex child scrolling */
+    }
+
+    /* Move Main Content (Video) to top */
+    .main-content {
+        order: 1;
+        width: 100%;
+        flex: 0 0 auto; /* Don't expand, just fit video */
+        background: black; /* Simplified bg for video area */
+    }
+
+    .video-container {
+        padding: 0;
+        margin-top: 0;
+        max-width: 100%;
+    }
+
+    #video-player {
+        margin-top: 0;
+        margin-bottom: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+
+    .channel-info {
+        padding: 16px;
+        background-color: var(--bg-color);
+        border-bottom: var(--glass-border);
+    }
+
+    #channel-name-display {
+        font-size: 18px;
+        margin-bottom: 4px;
+    }
+
+    #channel-status {
+        font-size: 12px;
+    }
+
+    /* Adjust Search and Header in Sidebar */
+    .sidebar-header {
+        padding: 12px 16px;
+        display: flex; /* Ensure it stays visible or adjust layout */
+    }
+
+    .sidebar-header h1 {
+        font-size: 18px;
+    }
+
+    .search-container {
+        padding: 8px 16px;
+    }
+
+    .channel-item {
+        padding: 10px 16px;
+    }
+    
+    .channel-icon {
+        width: 40px;
+        height: 40px;
+    }
+    
+    /* Login Modal Overlay adjustments */
+    .login-card {
+        width: 90%;
+        padding: 24px;
+    }
+}

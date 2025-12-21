@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const accessCodeInput = document.getElementById('access-code');
     const loginError = document.getElementById('login-error');
-    const CORRECT_CODE = "LVS2025"; // Hardcoded access code
+    const CORRECT_CODE = "lvs170603"; // Hardcoded access code
 
     // Check Login Status
     if (localStorage.getItem('isLoggedIn') === 'true') {
