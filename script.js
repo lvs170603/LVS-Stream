@@ -4,6 +4,36 @@ document.addEventListener('DOMContentLoaded', () => {
     const videoElement = document.getElementById('video-player');
     const channelNameDisplay = document.getElementById('channel-name-display');
     const channelStatus = document.getElementById('channel-status');
+
+    // Login Elements
+    const loginOverlay = document.getElementById('login-overlay');
+    const loginForm = document.getElementById('login-form');
+    const accessCodeInput = document.getElementById('access-code');
+    const loginError = document.getElementById('login-error');
+    const CORRECT_CODE = "LVS2025"; // Hardcoded access code
+
+    // Check Login Status
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+        loginOverlay.classList.add('hidden');
+    }
+
+    // Handle Login
+    loginForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        const enteredCode = accessCodeInput.value.trim();
+
+        if (enteredCode === CORRECT_CODE) {
+            localStorage.setItem('isLoggedIn', 'true');
+            loginOverlay.classList.add('hidden');
+            loginError.textContent = '';
+        } else {
+            loginError.textContent = 'Incorrect access code. Please try again.';
+            loginOverlay.classList.remove('hidden');
+            accessCodeInput.value = '';
+            accessCodeInput.focus();
+        }
+    });
+
     let hls;
 
     // Render Channel List
