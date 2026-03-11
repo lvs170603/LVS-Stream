@@ -10,7 +10,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const loginForm = document.getElementById('login-form');
     const accessCodeInput = document.getElementById('access-code');
     const loginError = document.getElementById('login-error');
-    const CORRECT_CODE = "lvs170603"; // Hardcoded access code
+    const CORRECT_CODE = "lvs"; // Hardcoded access code
 
     // Check Login Status
     if (localStorage.getItem('isLoggedIn') === 'true') {
@@ -34,7 +34,15 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    let hls;
+    let channels = [];
+
+    fetch('channels.json')
+        .then(response => response.json())
+        .then(data => {
+            channels = data;
+            renderChannels(channels);
+        })
+        .catch(error => console.error('Error loading channels:', error));
 
     // Render Channel List
     function renderChannels(channelsToRender) {
@@ -56,7 +64,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // Initial render
-    renderChannels(channels);
+    // Initial render handled by fetch above
 
     // Filter functionality
     searchInput.addEventListener('input', (e) => {
@@ -80,13 +88,20 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!channel.url) {
             channelStatus.textContent = "No Stream Source Available";
             channelStatus.style.color = "#ef4444"; // Red for error
-            // Don't stop the player immediately if we want to show a placeholder, but here we just pause
             videoElement.pause();
             return;
         }
 
         channelStatus.textContent = "Live";
         channelStatus.style.color = "#6366f1"; // Accent color
+
+        // Check if running in Flutter implementation
+        if (typeof PlayChannel !== 'undefined') {
+            PlayChannel.postMessage(channel.url);
+            // We can pause the local video element just in case
+            videoElement.pause();
+            return;
+        }
 
         if (Hls.isSupported()) {
             if (hls) {
@@ -118,25 +133,43 @@ document.addEventListener('DOMContentLoaded', () => {
     // Keyboard and interaction controls
     videoElement.addEventListener('dblclick', toggleFullscreen);
 
+    const videoContainer  = document.getElementById('video-container');
+    const fullscreenBtn   = document.getElementById('fullscreen-btn');
+    const fsIconExpand    = document.getElementById('fs-icon-expand');
+    const fsIconCollapse  = document.getElementById('fs-icon-collapse');
+
+    // Toggle fullscreen on the container (not the whole page)
     function toggleFullscreen() {
-        if (!document.fullscreenElement) {
-            if (videoElement.requestFullscreen) {
-                videoElement.requestFullscreen();
-            } else if (videoElement.webkitRequestFullscreen) { /* Safari */
-                videoElement.webkitRequestFullscreen();
-            } else if (videoElement.msRequestFullscreen) { /* IE11 */
-                videoElement.msRequestFullscreen();
+        const fsEl = document.fullscreenElement || document.webkitFullscreenElement;
+        if (!fsEl) {
+            // Enter fullscreen on the container
+            if (videoContainer.requestFullscreen) {
+                videoContainer.requestFullscreen();
+            } else if (videoContainer.webkitRequestFullscreen) {
+                videoContainer.webkitRequestFullscreen();
             }
         } else {
+            // Exit fullscreen
             if (document.exitFullscreen) {
                 document.exitFullscreen();
-            } else if (document.webkitExitFullscreen) { /* Safari */
+            } else if (document.webkitExitFullscreen) {
                 document.webkitExitFullscreen();
-            } else if (document.msExitFullscreen) { /* IE11 */
-                document.msExitFullscreen();
             }
         }
     }
+
+    // Button click
+    fullscreenBtn.addEventListener('click', toggleFullscreen);
+
+    // Sync icon when fullscreen state changes (including Esc / Android Back)
+    function onFullscreenChange() {
+        const isFullscreen = !!(document.fullscreenElement || document.webkitFullscreenElement);
+        fsIconExpand.style.display   = isFullscreen ? 'none'  : 'block';
+        fsIconCollapse.style.display = isFullscreen ? 'block' : 'none';
+    }
+    document.addEventListener('fullscreenchange',       onFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', onFullscreenChange);
+
 
     document.addEventListener('keydown', (e) => {
         // Ignore if user is typing in a search box or input

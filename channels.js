@@ -1,152 +1,214 @@
 const channels = [
     {
-        name: "ETV Bal Bharat Telugu",
-        icon: "Live Tv Icons/ETV Bal Bharat Telugu.png",
-        url: "",
-        category: "Kids"
-    },
-    {
         name: "ETV Cinema",
-        icon: "Live Tv Icons/ETV Cinema.png",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/etv-cinema.webp",
         url: "https://d1q7j6ha51ro6f.cloudfront.net/v1/master/9d43eacaed199f8d5883927e7aef514a8a08e108/ETV_CINEMA_H264-3_cloud_in/index.m3u8",
         category: "Movies"
     },
-    {
-        name: "ETV Life",
-        icon: "Live Tv Icons/ETV Life.png",
-        url: "https://d2cj1h11htct8o.cloudfront.net/v1/master/9d43eacaed199f8d5883927e7aef514a8a08e108/ETV_LIFE_H264_cloud_in/index.m3u8",
-        category: "Lifestyle"
-    },
+    
     {
         name: "ETV Plus",
-        icon: "Live Tv Icons/ETV Plus.png",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/etv-plus.webp",
         url: "https://d27tnkf60df3v4.cloudfront.net/v1/master/9d43eacaed199f8d5883927e7aef514a8a08e108/ETV_PLUS_H264-3_cloud_in/index.m3u8",
         category: "Entertainment"
     },
     {
         name: "ETV Telugu",
-        icon: "Live Tv Icons/ETV Telugu.png",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/etv-telugu.webp",
         url: "https://d2z3q47xzd535o.cloudfront.net/v1/master/9d43eacaed199f8d5883927e7aef514a8a08e108/ETV_HD_H264-2_cloud_in/index.m3u8",
         category: "General"
     },
     {
         name: "ETV Abhiruchi",
-        icon: "Live Tv Icons/Etv Abhiruchi.png",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/etv-abhiruchi.webp",
         url: "https://d2tbworamivdmb.cloudfront.net/v1/master/9d43eacaed199f8d5883927e7aef514a8a08e108/ETV_ABHIRUCHI_H264-3_cloud-in/index.m3u8",
         category: "Food"
     },
     {
-        name: "Gemini Comedy",
-        icon: "Live Tv Icons/Gemini Comedy.png",
-        url: "",
-        category: "Comedy"
-    },
-    {
-        name: "Gemini Life",
-        icon: "Live Tv Icons/Gemini Life.png",
-        url: "",
-        category: "Lifestyle"
-    },
-    {
-        name: "Gemini Movies",
-        icon: "Live Tv Icons/Gemini Movies.jpg",
-        url: "",
-        category: "Movies"
-    },
-    {
-        name: "Gemini Music",
-        icon: "Live Tv Icons/Gemini Music.png",
-        url: "",
+        name: "ETV Music",
+        icon: "https://i.imgur.com/GV8NA54.jpeg",
+        url: "https://cc-szivnms4rlah6.akamaized.net/WWBI/Amagi/ETV_Music_IN/playlist.m3u8",
         category: "Music"
     },
     {
         name: "Gemini TV",
-        icon: "Live Tv Icons/Gemini TV.png",
-        url: "https://livestream10.sunnxt.com/DolbyVision/GeminiTV_HDR/GeminiTV_HDR_Endpoints/GeminiTV-HDR10-IN-index.m3u8",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/gemini-tv.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0568/master.m3u8",
         category: "General"
     },
     {
-        name: "Kushi TV",
-        icon: "Live Tv Icons/Kushi TV.png",
-        url: "https://live.dinesh29.com.np/stream/jiotvplus/kushitv/master.m3u8",
-        category: "Kids"
+        name: "Gemini Comedy",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/gemini-comedy.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0573/master.m3u8",
+        category: "Comedy"
     },
     {
-        name: "NTV Telugu",
-        icon: "Live Tv Icons/NTV Telugu.png",
-        url: "https://yuppmedtaorire.akamaized.net/v1/master/a0d007312bfd99c47f76b77ae26b1ccdaae76cb1/ntv_nim_https/110322/ntv/playlist.m3u8",
-        category: "News"
+        name: "Gemini Life",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/gemini-life.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0584/master.m3u8",
+        category: "Lifestyle"
     },
     {
-        name: "Nickelodeon",
-        icon: "Live Tv Icons/Nicklodeon.png",
-        url: "https://fl1.moveonjoy.com/NICK_JR/index.m3u8",
-        category: "Kids"
-    },
-    {
-        name: "Star Maa Gold",
-        icon: "Live Tv Icons/Star Maa Gold.png",
-        url: "",
+        name: "Gemini Movies",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/gemini-movies.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0586/master.m3u8",
         category: "Movies"
     },
     {
-        name: "Star Maa Movies",
-        icon: "Live Tv Icons/Star Maa Movies.png",
-        url: "",
-        category: "Movies"
-    },
-    {
-        name: "Star Maa Music",
-        icon: "Live Tv Icons/Star Maa Music.png",
-        url: "",
+        name: "Gemini Music",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/gemini-music.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0589/master.m3u8",
         category: "Music"
     },
     {
         name: "Star Maa",
-        icon: "Live Tv Icons/Star Maa.png",
-        url: "",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/star-maa.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0478/master.m3u8",
         category: "General"
     },
     {
-        name: "Star Sports 1 Telugu",
-        icon: "Live Tv Icons/Star Sports1 Telugu.png",
-        url: "",
-        category: "Sports"
+        name: "Star Maa Gold",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/star-maa-gold.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0480/master.m3u8",
+        category: "Movies"
     },
     {
-        name: "Star Sports 2 Telugu",
-        icon: "Live Tv Icons/Star Sports2 Telugu.jpg",
-        url: "",
-        category: "Sports"
+        name: "Star Maa Movies",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/star-maa-movies.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0479/master.m3u8",
+        category: "Movies"
     },
     {
-        name: "TV9 Telugu",
-        icon: "Live Tv Icons/TV9 Telugu.png",
-        url: "https://dyjmyiv3bp2ez.cloudfront.net/pub-iotv9telcmjhcs/liveabr/playlist.m3u8",
-        category: "News"
+        name: "Star Maa Music",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/star-maa-music.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0481/master.m3u8",
+        category: "Music"
     },
     {
         name: "Zee Cinemalu",
-        icon: "Live Tv Icons/Zee Cinemalu.png",
-        url: "",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/zee-cinemalu.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0544/master.m3u8",
         category: "Movies"
     },
     {
         name: "Zee Telugu",
-        icon: "Live Tv Icons/Zee Telugu.png",
-        url: "",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/zee-telugu.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0537/master.m3u8",
         category: "General"
     },
     {
+        name: "Raj Music",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/raj-musix-telugu.webp",
+        url: "https://cdn-1.pishow.tv/live/1213/master.m3u8",
+        category: "Music"
+    },
+    {
         name: "B4U Music",
-        icon: "Live Tv Icons/B4U Music.png",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/b4u-music.webp",
         url: "https://cdnb4u.wiseplayout.com/B4U_Music/master.m3u8",
         category: "Music"
     },
     {
         name: "9XM Music",
-        icon: "Live Tv Icons/9XM.png",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/9xm.webp",
         url: "https://d35j504z0x2vu2.cloudfront.net/v1/manifest/0bc8e8376bd8417a1b6761138aa41c26c7309312/9xm/23886666-8fc5-470f-aab1-bd637ed607b1/3.m3u8",
         category: "Music"
+    },
+    {
+        name: "Studio One Plus",
+        icon: "https://static.wikia.nocookie.net/logopedia/images/1/1f/Studio_One_Plus.jpg/revision/latest?cb=20200215171306",
+        url: "https://cdn-1.pishow.tv/live/276/master.m3u8",
+        category: "General"
+    },
+    {
+        name: "ETV Bal Bharat Telugu",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/etv-bal-bharat.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0305/master.m3u8",
+        category: "Kids"
+    },
+    {
+        name: "Kushi TV",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/kushi-tv.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0408/master.m3u8",
+        category: "Kids"
+    },
+    {
+        name: "Nickelodeon",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/nick.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0405/master.m3u8",
+        category: "Kids"
+    },
+    {
+        name: "Moto Patlu",
+        icon: "https://upload.wikimedia.org/wikipedia/en/thumb/3/3b/Motu_Patlu.Jpg/250px-Motu_Patlu.Jpg",
+        url: "https://cloudfrontnet.vercel.app/tplay/playout/209622/master.m3u8",
+        category: "Kids"
+    },
+    {
+        name: "Star Sports 1 Telugu",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/star-sports-1-telugu.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0421/master.m3u8",
+        category: "Sports"
+    },
+    {
+        name: "Star Sports 2 Telugu",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/star-sports-2-telugu.webp",
+        url: "http://iptvcasomsapi.jprdigital.in/x-media/C0513/master.m3u8",
+        category: "Sports"
+    },
+    {
+        name: "Ten Cricket",
+        icon: "https://upload.wikimedia.org/wikipedia/en/thumb/1/12/Ten_Sports_Logo.png/250px-Ten_Sports_Logo.png",
+        url: "https://allottplay.com/tv/toffee/live.php?id=ten_cricket&e=.m3u8",
+        category: "Sports"
+    },
+    {
+        name: "WILLOW Sports",
+        icon: "https://upload.wikimedia.org/wikipedia/en/thumb/d/d3/Willow_Cricket.PNG/250px-Willow_Cricket.PNG",
+        url: "https://tvsen5.aynaott.com/willowhd/index.m3u8",
+        category: "Sports"
+    },
+    {
+        name: "TV9 Telugu",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/tv9-telugu.webp",
+        url: "https://dyjmyiv3bp2ez.cloudfront.net/pub-iotv9telcmjhcs/liveabr/playlist.m3u8",
+        category: "News"
+    },
+    {
+        name: "NTV Telugu",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/ntv-telugu.webp",
+        url: "https://yuppmedtaorire.akamaized.net/v1/master/a0d007312bfd99c47f76b77ae26b1ccdaae76cb1/ntv_nim_https/110322/ntv/playlist.m3u8",
+        category: "News"
+    },
+    {
+        name: "Bhakti TV",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/bhakti-tv.webp",
+        url: "https://cdn-1.pishow.tv/live/397/master.m3u8",
+        category: "Spiritual"
+    },
+    {
+        name: "ETV Life",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/etv-life.webp",
+        url: "https://d2cj1h11htct8o.cloudfront.net/v1/master/9d43eacaed199f8d5883927e7aef514a8a08e108/ETV_LIFE_H264_cloud_in/index.m3u8",
+        category: "Lifestyle"
+    },
+    {
+        name: "Hindu Dharma",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/hindu-dharmam.webp",
+        url: "https://cdn-1.pishow.tv/live/959/master.m3u8",
+        category: "Spiritual"
+    },
+    {
+        name: "SVBC-TTD",
+        icon: "https://www.tataplay.com/s3-api/v1/assets/channels/svbc.webp",
+        url: "https://player.mslivestream.net/telugu/5d076e5c3d34cb8bb08e54a4bb7e223e.sdp/playlist.m3u8",
+        category: "Spiritual"
+    },
+    {
+        name: "CVR OM",
+        icon: "https://jiotvimages.cdn.jio.com/dare_images/images/CVR_OM_Spiritual.png?width=300",
+        url: "https://cdn-1.pishow.tv/live/957/master.m3u8",
+        category: "Spiritual"
     }
+    
 ];
