@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LVS Live TV</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- HLS.js for streaming -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <div class="app-container">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h1>LVS Live TV</h1>
+            </div>
+            <div class="search-container">
+                <input type="text" id="search-input" placeholder="Search channels...">
+            </div>
+            <div id="channel-list" class="channel-list">
+                <!-- Channels will be populated here -->
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="video-container">
+                <!-- <video id="video-player" controls autoplay></video> -->
+                <div class="channel-info" id="current-channel-info">
+                    <h2 id="channel-name-display">Select a channel</h2>
+                    <p id="channel-status">No Signal</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Login Overlay -->
+    <div id="login-overlay" class="login-overlay">
+        <div class="login-card">
+            <div class="login-header">
+                <h2>Welcome Back</h2>
+                <p>Enter access code to watch</p>
+            </div>
+            <form id="login-form">
+                <div class="input-group">
+                    <input type="password" id="access-code" placeholder="Enter Access Code" required>
+                </div>
+                <button type="submit" class="login-btn">Start Watching</button>
+            </form>
+            <p id="login-error" class="login-error"></p>
+        </div>
+    </div>
+
+    <script src="channels.js"></script>
+    <script src="script.js"></script>
+</body>
+
+</html>
