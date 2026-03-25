@@ -5,6 +5,10 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:media_kit/src/player/native/player/real.dart';
+import 'services/media_manager.dart';
+import '../main.dart';
 import 'models/channel.dart';
 
 class VideoPlayerPage extends StatefulWidget {
@@ -95,6 +99,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     _gestureHintTimer?.cancel();
     _channelScrollController.dispose();
     _sheetAnimController.dispose();
+    MediaManager().disposeVideoPlayer();
     _player.dispose();
     WakelockPlus.disable();
     // Restore portrait orientation and system UI
@@ -120,6 +125,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     _startOverlayTimer();
 
     try {
+      await MediaManager().registerAndPlayVideo(_player);
       await _player.open(
         Media(channel.url, httpHeaders: {
           'User-Agent':
@@ -127,6 +133,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
         }),
       );
       await _player.setVolume(100.0);
+      _applyAudioSettings();
       if (mounted) {
         setState(() => _isLoading = false);
         _focusNode.requestFocus();
@@ -139,6 +146,32 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
           _isError = true;
         });
       }
+    }
+  }
+
+  void _applyAudioSettings() {
+    final box = Hive.box('settingsBox');
+    final bool isMono = box.get('monoAudio', defaultValue: false);
+    final double balance = box.get('audioBalance', defaultValue: 0.0);
+
+    List<String> filters = [];
+    if (isMono) {
+      filters.add('pan=mono|c0=0.5*c0+0.5*c1');
+    } else if (balance != 0.0) {
+      final leftVol = balance < 0 ? 1.0 : (1.0 - balance);
+      final rightVol = balance > 0 ? 1.0 : (1.0 + balance);
+      filters.add('pan=stereo|c0=$leftVol*c0|c1=$rightVol*c1');
+    }
+
+    try {
+      final nativePlayer = _player.platform as NativePlayer;
+      if (filters.isNotEmpty) {
+        nativePlayer.setProperty('af', filters.join(','));
+      } else {
+        nativePlayer.setProperty('af', '');
+      }
+    } catch (e) {
+      debugPrint("Cannot apply audio filters natively: $e");
     }
   }
 
@@ -626,24 +659,30 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
 
                 return GestureDetector(
                   onTap: () => _switchToChannel(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: _itemWidth,
-                    margin: const EdgeInsets.only(right: 12, bottom: 8),
-                    decoration: BoxDecoration(
-                      color: isFocused
-                          ? const Color(0xFF6366f1)
-                          : isCurrent
-                              ? Colors.white12
-                              : const Color(0xFF22222E),
-                      borderRadius: BorderRadius.circular(12),
-                      border: isFocused
-                          ? Border.all(color: Colors.white54, width: 1.5)
-                          : isCurrent
-                              ? Border.all(color: Colors.red, width: 1.5)
-                              : null,
-                    ),
-                    child: Column(
+                  child: AnimatedScale(
+                    scale: isFocused ? 1.05 : 1.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: _itemWidth,
+                      margin: const EdgeInsets.only(right: 12, bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isFocused
+                            ? const Color(0xFF6366f1)
+                            : isCurrent
+                                ? Colors.white12
+                                : const Color(0xFF22222E),
+                        borderRadius: BorderRadius.circular(12),
+                        border: isFocused
+                            ? Border.all(color: Colors.white, width: 2)
+                            : isCurrent
+                                ? Border.all(color: Colors.red, width: 2)
+                                : Border.all(color: Colors.transparent, width: 2),
+                        boxShadow: isFocused
+                            ? [BoxShadow(color: Colors.white.withAlpha(80), blurRadius: 15, spreadRadius: 2)]
+                            : [],
+                      ),
+                      child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Channel icon
@@ -697,7 +736,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
                       ],
                     ),
                   ),
-                );
+                ),
+              );
               },
             ),
           ),
