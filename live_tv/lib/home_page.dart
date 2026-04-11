@@ -1,9 +1,14 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'channel.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'models/channel.dart';
+import 'services/api_service.dart';
 import 'video_player_page.dart';
+import 'radio_player_page.dart';
+import 'settings_page.dart';
+import 'services/ad_manager.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -15,6 +20,7 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   List<Channel> channels = [];
   bool isLoading = true;
+  int _selectedIndex = 0;
 
   @override
   void initState() {
@@ -23,47 +29,133 @@ class _HomePageState extends State<HomePage> {
   }
 
   Future<void> loadChannels() async {
-    try {
-      final String response = await rootBundle.loadString('assets/channels.json');
-      final List<dynamic> data = json.decode(response);
+    final box = Hive.box('channelsBox');
+    final String? cachedData = box.get('channels');
+    
+    if (cachedData != null) {
+      final List<dynamic> data = json.decode(cachedData);
       setState(() {
         channels = data.map((json) => Channel.fromJson(json)).toList();
         isLoading = false;
       });
+    } else {
+      await _refreshChannelsFromBackend();
+    }
+  }
+
+  Future<void> _refreshChannelsFromBackend() async {
+    setState(() {
+      isLoading = true;
+    });
+    try {
+      final apiService = ApiService();
+      final fetchedChannels = await apiService.fetchChannels();
+      
+      // Update local cache
+      final box = Hive.box('channelsBox');
+      final channelsJsonList = fetchedChannels.map((c) => c.toJson()).toList();
+      await box.put('channels', json.encode(channelsJsonList));
+
+      if (mounted) {
+        setState(() {
+          channels = fetchedChannels;
+          isLoading = false;
+        });
+      }
     } catch (e) {
-      debugPrint("Error loading channels: $e");
-      setState(() {
-        isLoading = false;
-      });
+      debugPrint("Error fetching channels: $e");
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to refresh channels. Please check your internet connection.')),
+        );
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    final isMobile = MediaQuery.of(context).size.width <= 800;
+
+    Widget mainContent;
+    {
+      final isRadioFilter = _selectedIndex == 1;
+      final filteredChannels = channels.where((c) {
+        final isCategoryRadio = c.category.toLowerCase() == 'radio';
+        return isRadioFilter ? isCategoryRadio : !isCategoryRadio;
+      }).toList();
+
+      final categoryOrder = [
+        "Entertainment",
+        "Movies",
+        "Music",
+        "Comedy",
+        "Spiritual",
+        "News",
+        "Sports"
+      ];
+
+      // 1. Group channels
+      final Map<String, List<Channel>> groupedCategories = {};
+      for (var c in filteredChannels) {
+        final cat = c.category.isNotEmpty ? c.category : "Others";
+        groupedCategories.putIfAbsent(cat, () => []).add(c);
+      }
+
+      // 2. Sort categories based on categoryOrder
+      final List<String> sortedKeys = groupedCategories.keys.toList()..sort((a, b) {
+        int indexA = categoryOrder.indexOf(a);
+        int indexB = categoryOrder.indexOf(b);
+        if (indexA == -1 && indexB == -1) return a.compareTo(b); // Alphabetical if both unknown
+        if (indexA == -1) return 1; // Put unknown at the end
+        if (indexB == -1) return -1; // Put unknown at the end
+        return indexA.compareTo(indexB);
+      });
+
+      // 3. Flatten into a single list
+      final List<Channel> sortedChannels = [];
+      for (var key in sortedKeys) {
+        sortedChannels.addAll(groupedCategories[key]!);
+      }
+
+      if (isLoading) {
+        mainContent = _buildSkeletonGrid();
+      } else if (sortedChannels.isEmpty) {
+        mainContent = const Center(child: Text("No channels found.", style: TextStyle(color: Colors.white70)));
+      } else {
+        mainContent = GridView.builder(
+          padding: const EdgeInsets.all(16),
+          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+            maxCrossAxisExtent: 200,
+            childAspectRatio: 0.8,
+            crossAxisSpacing: 16,
+            mainAxisSpacing: 16,
+          ),
+          itemCount: sortedChannels.length,
+          itemBuilder: (context, index) {
+            final channel = sortedChannels[index];
+            return _ChannelCard(
+              channel: channel, 
+              channels: sortedChannels // Fixes channel +/- skipping across wrong orders
+            );
+          },
+        );
+      }
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0f0f13),
+      drawer: isMobile ? Drawer(backgroundColor: const Color(0xFF141419), child: _buildSidebar(isMobile: true)) : null,
       body: Row(
         children: [
           // Sidebar (Desktop style)
-          if (MediaQuery.of(context).size.width > 800)
+          if (!isMobile)
             Container(
               width: 300,
               color: const Color(0xFF141419),
-              child: const Column(
-                children: [
-                  Padding(
-                    padding: EdgeInsets.all(24.0),
-                    child: Text(
-                      "LVS Live TV",
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              child: _buildSidebar(isMobile: false),
             ),
 
           // Main Content
@@ -71,44 +163,196 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               children: [
                 // Mobile Header
-                if (MediaQuery.of(context).size.width <= 800)
-                  Container(
-                    padding: const EdgeInsets.all(16.0),
-                    color: const Color(0xFF141419),
-                    alignment: Alignment.centerLeft,
-                    child: const Text(
-                      "LVS Live TV",
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
+                if (isMobile)
+                  SafeArea(
+                    bottom: false,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                      color: const Color(0xFF141419),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Builder(
+                                builder: (context) => IconButton(
+                                  icon: const Icon(Icons.menu, color: Colors.white),
+                                  onPressed: () => Scaffold.of(context).openDrawer(),
+                                  tooltip: 'Open Menu',
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Text(
+                                "LVS Live TV",
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.refresh, color: Colors.white),
+                            onPressed: _refreshChannelsFromBackend,
+                            tooltip: 'Refresh Channels',
+                          ),
+                        ],
                       ),
                     ),
                   ),
                 
-                // Channel Grid
-                Expanded(
-                  child: isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : GridView.builder(
-                          padding: const EdgeInsets.all(16),
-                          gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                            maxCrossAxisExtent: 200,
-                            childAspectRatio: 0.8,
-                            crossAxisSpacing: 16,
-                            mainAxisSpacing: 16,
-                          ),
-                          itemCount: channels.length,
-                          itemBuilder: (context, index) {
-                            final channel = channels[index];
-                            return _ChannelCard(channel: channel, channels: channels);
-                          },
-                        ),
-                ),
+                // Channel Grid or Settings
+                Expanded(child: mainContent),
+                
+                // Bottom Banner Ad
+                const AdBanner(),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildSkeletonGrid() {
+    return GridView.builder(
+      padding: const EdgeInsets.all(16),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+        maxCrossAxisExtent: 200,
+        childAspectRatio: 0.8,
+        crossAxisSpacing: 16,
+        mainAxisSpacing: 16,
+      ),
+      itemCount: 15,
+      itemBuilder: (context, index) {
+        return const _SkeletonChannelCard();
+      },
+    );
+  }
+
+  Widget _buildSidebar({bool isMobile = false}) {
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.only(top: isMobile ? 48.0 : 24.0, left: 24.0, right: 24.0, bottom: 24.0),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                "LVS Live TV",
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+              if (!isMobile)
+                IconButton(
+                  icon: const Icon(Icons.refresh, color: Colors.white),
+                  onPressed: _refreshChannelsFromBackend,
+                  tooltip: 'Refresh Channels',
+                ),
+            ],
+          ),
+        ),
+        _buildNavItem(0, Icons.tv, 'TV Channels', isMobile),
+        _buildNavItem(1, Icons.radio, 'Radio Channels', isMobile),
+        _buildNavItem(2, Icons.settings, 'Settings', isMobile),
+      ],
+    );
+  }
+
+  Widget _buildNavItem(int index, IconData icon, String title, bool isMobile) {
+    return _SidebarItem(
+      index: index,
+      icon: icon,
+      title: title,
+      isMobile: isMobile,
+      isSelected: _selectedIndex == index,
+      onTap: () {
+        if (index == 2) {
+          // Push Settings as a proper route so BACK returns here
+          if (isMobile) Navigator.pop(context); // close drawer first
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const SettingsPage()),
+          );
+        } else {
+          setState(() {
+            _selectedIndex = index;
+          });
+          if (isMobile) Navigator.pop(context);
+        }
+      },
+    );
+  }
+}
+
+class _SidebarItem extends StatefulWidget {
+  final int index;
+  final IconData icon;
+  final String title;
+  final bool isMobile;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _SidebarItem({
+    required this.index,
+    required this.icon,
+    required this.title,
+    required this.isMobile,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  @override
+  State<_SidebarItem> createState() => _SidebarItemState();
+}
+
+class _SidebarItemState extends State<_SidebarItem> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      scale: _isFocused ? 1.05 : 1.0,
+      duration: const Duration(milliseconds: 200),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+        decoration: BoxDecoration(
+          color: widget.isSelected ? Colors.white.withAlpha(20) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: _isFocused ? Border.all(color: Colors.white, width: 2) : Border.all(color: Colors.transparent, width: 2),
+          boxShadow: _isFocused
+              ? [BoxShadow(color: Colors.white.withAlpha(80), blurRadius: 15, spreadRadius: 2)]
+              : [],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onFocusChange: (value) => setState(() => _isFocused = value),
+            onTap: widget.onTap,
+            child: Padding(
+              padding: const EdgeInsets.all(12.0),
+              child: Row(
+                children: [
+                  Icon(widget.icon, color: widget.isSelected || _isFocused ? Colors.white : Colors.white54),
+                  const SizedBox(width: 16),
+                  Text(
+                    widget.title,
+                    style: TextStyle(
+                      color: widget.isSelected || _isFocused ? Colors.white : Colors.white54,
+                      fontWeight: widget.isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -130,13 +374,21 @@ class _ChannelCardState extends State<_ChannelCard> {
   @override
   Widget build(BuildContext context) {
     return AnimatedScale(
-      scale: _isFocused ? 1.1 : 1.0,
+      scale: _isFocused ? 1.05 : 1.0,
       duration: const Duration(milliseconds: 200),
       curve: Curves.easeOut,
-      child: Material(
-        color: _isFocused ? Colors.white : const Color(0xFF1E1E28),
-        borderRadius: BorderRadius.circular(16),
-        elevation: _isFocused ? 12 : 4,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          border: _isFocused ? Border.all(color: Colors.white, width: 3) : Border.all(color: Colors.transparent, width: 3),
+          boxShadow: _isFocused
+            ? [BoxShadow(color: Colors.white.withAlpha(80), blurRadius: 20, spreadRadius: 3)]
+            : [BoxShadow(color: Colors.black.withAlpha(50), blurRadius: 10, offset: const Offset(0, 4))],
+        ),
+        child: Material(
+          color: const Color(0xFF1E1E28),
+          borderRadius: BorderRadius.circular(16),
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: () {
@@ -146,16 +398,33 @@ class _ChannelCardState extends State<_ChannelCard> {
               );
               return;
             }
-            final index = widget.channels.indexOf(widget.channel);
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => VideoPlayerPage(
-                  channels: widget.channels,
-                  initialIndex: index,
-                ),
-              ),
-            );
+
+            AdManager.instance.showInterstitialIfReady(() {
+              if (widget.channel.category.toLowerCase() == 'radio') {
+                final radioChannels = widget.channels.where((c) => c.category.toLowerCase() == 'radio').toList();
+                final index = radioChannels.indexOf(widget.channel);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => RadioPlayerPage(
+                      channels: radioChannels,
+                      initialIndex: index,
+                    ),
+                  ),
+                );
+              } else {
+                final index = widget.channels.indexOf(widget.channel);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => VideoPlayerPage(
+                      channels: widget.channels,
+                      initialIndex: index,
+                    ),
+                  ),
+                );
+              }
+            });
           },
           onFocusChange: (value) {
             setState(() {
@@ -188,8 +457,8 @@ class _ChannelCardState extends State<_ChannelCard> {
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    color: _isFocused ? Colors.black : Colors.white,
+                  style: const TextStyle(
+                    color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 14,
                   ),
@@ -199,12 +468,61 @@ class _ChannelCardState extends State<_ChannelCard> {
               Text(
                 widget.channel.category,
                 style: TextStyle(
-                  color: _isFocused ? Colors.black54 : Colors.white.withValues(alpha: 0.5),
+                  color: Colors.white.withValues(alpha: 0.5),
                   fontSize: 12,
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    ),
+  );
+  }
+}
+
+class _SkeletonChannelCard extends StatelessWidget {
+  const _SkeletonChannelCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: const Color(0xFF1E1E28),
+      borderRadius: BorderRadius.circular(16),
+      elevation: 4,
+      child: Shimmer.fromColors(
+        baseColor: Colors.grey[850]!,
+        highlightColor: Colors.grey[700]!,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              height: 80,
+              width: 80,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              height: 14,
+              width: 100,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              height: 12,
+              width: 60,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+          ],
         ),
       ),
     );

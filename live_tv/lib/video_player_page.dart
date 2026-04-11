@@ -5,7 +5,10 @@ import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'channel.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'main.dart';
+import 'models/channel.dart';
+import 'services/ad_manager.dart';
 
 class VideoPlayerPage extends StatefulWidget {
   final List<Channel> channels;
@@ -47,6 +50,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
   bool _showGestureHint = false;
   Timer? _gestureHintTimer;
 
+  Timer? _adBannerTimer;
+  bool _showPlayerBanner = false;
+
   final FocusNode _focusNode = FocusNode();
 
   // Width of each card in the horizontal channel row
@@ -86,6 +92,24 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
       DeviceOrientation.landscapeRight,
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+
+    _startAdBannerTimer();
+  }
+
+  void _startAdBannerTimer() {
+    _showBannerSequence();
+    _adBannerTimer = Timer.periodic(const Duration(minutes: 2), (timer) {
+      _showBannerSequence();
+    });
+  }
+
+  void _showBannerSequence() {
+    if (!mounted) return;
+    setState(() => _showPlayerBanner = true);
+    // Hide banner after 30 seconds securely with smooth exit
+    Future.delayed(const Duration(seconds: 30), () {
+      if (mounted) setState(() => _showPlayerBanner = false);
+    });
   }
 
   @override
@@ -93,15 +117,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     _focusNode.dispose();
     _overlayTimer?.cancel();
     _gestureHintTimer?.cancel();
+    _adBannerTimer?.cancel();
     _channelScrollController.dispose();
     _sheetAnimController.dispose();
     _player.dispose();
     WakelockPlus.disable();
-    // Restore portrait orientation and system UI
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-      DeviceOrientation.portraitDown,
-    ]);
+    // Restore portrait orientation only if it's a mobile device
+    if (!isGlobalTVDevice) {
+      SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+        DeviceOrientation.portraitDown,
+      ]);
+    }
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -120,6 +147,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     _startOverlayTimer();
 
     try {
+      // Stop any background radio before opening video
+      await audioHandler.stop();
       await _player.open(
         Media(channel.url, httpHeaders: {
           'User-Agent':
@@ -127,6 +156,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
         }),
       );
       await _player.setVolume(100.0);
+      _applyAudioSettings();
       if (mounted) {
         setState(() => _isLoading = false);
         _focusNode.requestFocus();
@@ -142,13 +172,41 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     }
   }
 
+  void _applyAudioSettings() {
+    final box = Hive.box('settingsBox');
+    final bool isMono = box.get('monoAudio', defaultValue: false);
+    final double balance = box.get('audioBalance', defaultValue: 0.0);
+
+    List<String> filters = [];
+    if (isMono) {
+      filters.add('pan=mono|c0=0.5*c0+0.5*c1');
+    } else if (balance != 0.0) {
+      final leftVol = balance < 0 ? 1.0 : (1.0 - balance);
+      final rightVol = balance > 0 ? 1.0 : (1.0 + balance);
+      filters.add('pan=stereo|c0=$leftVol*c0|c1=$rightVol*c1');
+    }
+
+    try {
+      final nativePlayer = _player.platform as NativePlayer;
+      if (filters.isNotEmpty) {
+        nativePlayer.setProperty('af', filters.join(','));
+      } else {
+        nativePlayer.setProperty('af', '');
+      }
+    } catch (e) {
+      debugPrint("Cannot apply audio filters natively: $e");
+    }
+  }
+
   void _changeChannel(int offset) {
     int newIndex = _currentIndex + offset;
     if (newIndex < 0) newIndex = widget.channels.length - 1;
     if (newIndex >= widget.channels.length) newIndex = 0;
     if (newIndex != _currentIndex) {
-      setState(() => _currentIndex = newIndex);
-      _initializePlayer();
+      AdManager.instance.showInterstitialIfReady(() {
+        setState(() => _currentIndex = newIndex);
+        _initializePlayer();
+      });
     }
   }
 
@@ -157,9 +215,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
       _closeChannelList();
       return;
     }
-    setState(() => _currentIndex = index);
-    _initializePlayer();
-    _closeChannelList();
+    AdManager.instance.showInterstitialIfReady(() {
+      setState(() => _currentIndex = index);
+      _initializePlayer();
+      _closeChannelList();
+    });
   }
 
   void _togglePlay() {
@@ -527,6 +587,26 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
                       ),
                     ],
 
+                    // Timed Player Banner Ad Overlay (Outside channel list)
+                    SafeArea(
+                      child: Align(
+                        alignment: Alignment.bottomCenter,
+                        child: AnimatedSlide(
+                          offset: _showPlayerBanner ? Offset.zero : const Offset(0, 1.5),
+                          duration: const Duration(milliseconds: 400),
+                          curve: Curves.easeOutCubic,
+                          child: AnimatedOpacity(
+                            opacity: _showPlayerBanner ? 1.0 : 0.0,
+                            duration: const Duration(milliseconds: 400),
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 24.0),
+                              child: const AdBanner(),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+
                     // 6. Gesture hint
                     AnimatedOpacity(
                       opacity: _showGestureHint ? 1.0 : 0.0,
@@ -626,24 +706,30 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
 
                 return GestureDetector(
                   onTap: () => _switchToChannel(index),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 150),
-                    width: _itemWidth,
-                    margin: const EdgeInsets.only(right: 12, bottom: 8),
-                    decoration: BoxDecoration(
-                      color: isFocused
-                          ? const Color(0xFF6366f1)
-                          : isCurrent
-                              ? Colors.white12
-                              : const Color(0xFF22222E),
-                      borderRadius: BorderRadius.circular(12),
-                      border: isFocused
-                          ? Border.all(color: Colors.white54, width: 1.5)
-                          : isCurrent
-                              ? Border.all(color: Colors.red, width: 1.5)
-                              : null,
-                    ),
-                    child: Column(
+                  child: AnimatedScale(
+                    scale: isFocused ? 1.05 : 1.0,
+                    duration: const Duration(milliseconds: 200),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      width: _itemWidth,
+                      margin: const EdgeInsets.only(right: 12, bottom: 8),
+                      decoration: BoxDecoration(
+                        color: isFocused
+                            ? const Color(0xFF6366f1)
+                            : isCurrent
+                                ? Colors.white12
+                                : const Color(0xFF22222E),
+                        borderRadius: BorderRadius.circular(12),
+                        border: isFocused
+                            ? Border.all(color: Colors.white, width: 2)
+                            : isCurrent
+                                ? Border.all(color: Colors.red, width: 2)
+                                : Border.all(color: Colors.transparent, width: 2),
+                        boxShadow: isFocused
+                            ? [BoxShadow(color: Colors.white.withAlpha(80), blurRadius: 15, spreadRadius: 2)]
+                            : [],
+                      ),
+                      child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         // Channel icon
@@ -697,7 +783,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
                       ],
                     ),
                   ),
-                );
+                ),
+              );
               },
             ),
           ),
