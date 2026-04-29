@@ -62,6 +62,9 @@ class MainActivity : AudioServiceActivity() {
             ) {
                 eventSink?.success(mapOf("event" to "queueIndexChanged", "index" to (exoPlayer?.currentMediaItemIndex ?: 0)))
             }
+            override fun onPlayerError(error: androidx.media3.common.PlaybackException) {
+                eventSink?.success(mapOf("event" to "playbackError", "error" to (error.message ?: "Native ExoPlayer streaming error")))
+            }
         })
 
         // Polling for position updates
@@ -112,6 +115,8 @@ class MainActivity : AudioServiceActivity() {
                     val index = args["index"] as Int
                     
                     val items = urls.map { MediaItem.fromUri(it) }
+                    exoPlayer?.stop() // Strict cleanup to purge dying sockets
+                    exoPlayer?.clearMediaItems()
                     exoPlayer?.setMediaItems(items, index, 0L)
                     exoPlayer?.prepare()
                     result.success(null)
@@ -144,10 +149,21 @@ class MainActivity : AudioServiceActivity() {
             when (call.method) {
                 "setAutoLaunch" -> {
                     val enabled = call.argument<Boolean>("enabled") ?: false
-                    // Use same namespace as BootReceiver: "app_prefs" / "auto_launch_enabled"
                     val prefs = getSharedPreferences("app_prefs", android.content.Context.MODE_PRIVATE)
                     prefs.edit().putBoolean("auto_launch_enabled", enabled).apply()
                     result.success(null)
+                }
+                else -> result.notImplemented()
+            }
+        }
+
+        // TV detection channel — used by main.dart at cold-boot
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "tv_device_check").setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isTV" -> {
+                    val uiModeManager = getSystemService(android.content.Context.UI_MODE_SERVICE) as android.app.UiModeManager
+                    val isTV = uiModeManager.currentModeType == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION
+                    result.success(if (isTV) "true" else "false")
                 }
                 else -> result.notImplemented()
             }

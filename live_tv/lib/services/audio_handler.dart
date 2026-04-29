@@ -43,9 +43,13 @@ class MyAudioHandler extends BaseAudioHandler with SeekHandler {
           3: AudioProcessingState.ready,
           4: AudioProcessingState.completed,
         }[stateInt] ?? AudioProcessingState.idle;
-        
         playbackState.add(playbackState.value.copyWith(
           processingState: processingState,
+        ));
+      } else if (event['event'] == 'playbackError') {
+        playbackState.add(playbackState.value.copyWith(
+          processingState: AudioProcessingState.error,
+          errorMessage: event['error'] as String?,
         ));
       } else if (event['event'] == 'queueIndexChanged') {
         final index = event['index'] as int;

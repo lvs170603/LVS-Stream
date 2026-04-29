@@ -34,7 +34,11 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
   bool _isError = false;
   bool _isLoading = true;
   bool _showOverlay = false;
+  bool _isDisposed = false; // Guards native callbacks after dispose
   Timer? _overlayTimer;
+
+  // Stream subscription – must be cancelled before player.dispose()
+  StreamSubscription<bool>? _bufferingSubscription;
 
   // Channel list bottom sheet
   bool _showChannelList = false;
@@ -54,6 +58,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
   bool _showPlayerBanner = false;
 
   final FocusNode _focusNode = FocusNode();
+
+  // Smooth channel-switch key for AnimatedSwitcher
+  int _videoKey = 0;
 
   // Width of each card in the horizontal channel row
   static const double _itemWidth = 120.0;
@@ -84,13 +91,18 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
 
     _player = Player();
     _videoController = VideoController(_player);
+
+    // Store subscription so it can be properly cancelled before dispose.
+    // This prevents the native MPV 'callback after delete' SIGABRT crash.
+    _bufferingSubscription = _player.stream.buffering.listen((isBuffering) {
+      if (mounted && !_isDisposed) {
+        setState(() => _isLoading = isBuffering);
+      }
+    });
+
     _initializePlayer();
     WakelockPlus.enable();
-    // Force landscape + hide status & navigation bars
-    SystemChrome.setPreferredOrientations([
-      DeviceOrientation.landscapeLeft,
-      DeviceOrientation.landscapeRight,
-    ]);
+    // Hide status & navigation bars for video player
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     _startAdBannerTimer();
@@ -114,21 +126,24 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
 
   @override
   void dispose() {
-    _focusNode.dispose();
+    _isDisposed = true;
+    // Cancel stream subscription BEFORE disposing the player.
+    // Failing to do so causes the libmpv SIGABRT crash:
+    // "Callback invoked after it has been deleted"
+    _bufferingSubscription?.cancel();
+    _bufferingSubscription = null;
+
     _overlayTimer?.cancel();
     _gestureHintTimer?.cancel();
     _adBannerTimer?.cancel();
+    _focusNode.dispose();
     _channelScrollController.dispose();
     _sheetAnimController.dispose();
+
+    // Dispose the player last – after all Dart callbacks are gone
     _player.dispose();
     WakelockPlus.disable();
-    // Restore portrait orientation only if it's a mobile device
-    if (!isGlobalTVDevice) {
-      SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-        DeviceOrientation.portraitDown,
-      ]);
-    }
+    // Restore system UI mode
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     super.dispose();
   }
@@ -142,6 +157,7 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
         _isLoading = true;
         _isError = false;
         _showOverlay = true;
+        _videoKey++;  // Triggers AnimatedSwitcher fade on every channel change
       });
     }
     _startOverlayTimer();
@@ -435,8 +451,15 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    // 1. Video
-                    Video(controller: _videoController),
+                    // 1. Video – wrapped in AnimatedSwitcher for smooth
+                    // fade when switching channels (no flicker on rotation)
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: Video(
+                        key: ValueKey(_videoKey),
+                        controller: _videoController,
+                      ),
+                    ),
 
                     // 2. Loading
                     if (_isLoading)

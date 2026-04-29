@@ -13,15 +13,16 @@ class AdManager {
   InterstitialAd? _interstitialAd;
   bool _isInterstitialAdLoading = false;
   
-  // Ad Frequency logic
-  int _channelClickCount = 0;
-  final int _adClickThreshold = 3; // Show ad every 3 clicks
-  
+  // Passive Time-Based logic
   DateTime? _lastAdShownTime;
-  final Duration _adCooldown = const Duration(seconds: 60); // 60 seconds cooldown
+  final Duration _adCooldown = const Duration(minutes: 5); // 5 minutes ad-free window
 
   Future<void> initialize() async {
     await MobileAds.instance.initialize();
+    
+    // Start tracking the 5-minute grace period silently as soon as the app successfully launches
+    _lastAdShownTime = DateTime.now();
+    
     _loadInterstitialAd();
   }
 
@@ -48,26 +49,26 @@ class AdManager {
     );
   }
 
-  /// Should be called whenever a channel is clicked
+  /// Smart trigger validates if the 5-minute passive viewing threshold has expired.
+  /// If it has expired, and the user triggers a physical action, intercept it with an Ad!
   void showInterstitialIfReady(VoidCallback onContinue) {
-    _channelClickCount++;
 
     bool meetsTimeCondition = true;
     if (_lastAdShownTime != null) {
       meetsTimeCondition = DateTime.now().difference(_lastAdShownTime!) >= _adCooldown;
     }
 
-    // Check Combined Logic: At least 3 clicks AND at least 60 seconds passed
-    if (_channelClickCount < _adClickThreshold || !meetsTimeCondition) {
-      debugPrint("Ad conditions not met (Clicks: $_channelClickCount/$_adClickThreshold, Time ok: $meetsTimeCondition). Skipping ad.");
+    // Check Passive Time Window
+    if (!meetsTimeCondition) {
+      debugPrint("Under 5-minute ad-free umbrella. Skipping ad visually without interrupting flow.");
       onContinue();
       return;
     }
 
-    // 3. Show Ad if Loaded
+    // Show Ad if Loaded. If they hit the threshold but the network hasn't buffered an ad yet, drop it so we never freeze the UI.
     if (_interstitialAd == null) {
-      debugPrint("Interstitial ad not ready yet. Skipping.");
-      _loadInterstitialAd(); // Try to load one just in case
+      debugPrint("Interstitial ad hit timing threshold but ad wasn't heavily buffered yet. Skipping.");
+      _loadInterstitialAd(); 
       onContinue();
       return;
     }
@@ -91,8 +92,7 @@ class AdManager {
     debugPrint("Showing Interstitial Ad");
     _interstitialAd!.show();
     
-    // Reset counters and timers
-    _channelClickCount = 0;
+    // Reset passive tracker for the next 5 empty minutes
     _lastAdShownTime = DateTime.now();
   }
 

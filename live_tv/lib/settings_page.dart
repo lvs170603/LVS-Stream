@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:provider/provider.dart';
+import 'providers/theme_provider.dart';
 import 'services/ad_manager.dart';
 
 class SettingsPage extends StatefulWidget {
@@ -85,13 +87,13 @@ class _SettingsPageState extends State<SettingsPage> {
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
-        backgroundColor: const Color(0xFF0f0f13),
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
-          backgroundColor: const Color(0xFF141419),
+          backgroundColor: Theme.of(context).colorScheme.surface,
           elevation: 0,
-          title: const Text('Settings',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-          iconTheme: const IconThemeData(color: Colors.white),
+          title: Text('Settings',
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.bold)),
+          iconTheme: IconThemeData(color: Theme.of(context).iconTheme.color),
           leading: IconButton(
             icon: const Icon(Icons.arrow_back),
             onPressed: () => Navigator.pop(context),
@@ -102,6 +104,37 @@ class _SettingsPageState extends State<SettingsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Theme Section ──────────────────────────────────
+              _buildSettingsCard(
+                title: "Theme",
+                icon: Icons.palette_outlined,
+                child: Column(
+                  children: [
+                    _ThemeOptionTile(
+                      label: "System Default",
+                      subtitle: "Follow device theme automatically",
+                      icon: Icons.brightness_auto_rounded,
+                      value: ThemeMode.system,
+                    ),
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                    _ThemeOptionTile(
+                      label: "Light",
+                      subtitle: "Always use light theme",
+                      icon: Icons.light_mode_rounded,
+                      value: ThemeMode.light,
+                    ),
+                    Divider(height: 1, color: Theme.of(context).colorScheme.outlineVariant),
+                    _ThemeOptionTile(
+                      label: "Dark",
+                      subtitle: "Always use dark theme",
+                      icon: Icons.dark_mode_rounded,
+                      value: ThemeMode.dark,
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              // ── Audio Section ──────────────────────────────────
               _buildSettingsCard(
                 title: "Audio Output",
                 icon: Icons.speaker,
@@ -111,16 +144,16 @@ class _SettingsPageState extends State<SettingsPage> {
                       duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
                         borderRadius: BorderRadius.circular(12),
-                        border: _isMonoApparentFocus ? Border.all(color: Colors.white, width: 2) : Border.all(color: Colors.transparent, width: 2),
-                        boxShadow: _isMonoApparentFocus ? [BoxShadow(color: Colors.white.withAlpha(50), blurRadius: 10, spreadRadius: 1)] : [],
+                        border: _isMonoApparentFocus ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : Border.all(color: Colors.transparent, width: 2),
+                        boxShadow: _isMonoApparentFocus ? [BoxShadow(color: Theme.of(context).colorScheme.primary.withAlpha(50), blurRadius: 10, spreadRadius: 1)] : [],
                       ),
                       child: Focus(
                         onFocusChange: (val) => setState(() => _isMonoApparentFocus = val),
                         child: SwitchListTile(
-                          title: const Text("Mono Audio", style: TextStyle(color: Colors.white, fontSize: 18)),
-                          subtitle: const Text("Combine left and right channels into a single mono channel.", style: TextStyle(color: Colors.white54)),
+                          title: Text("Mono Audio", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18)),
+                          subtitle: Text("Combine left and right channels into a single mono channel.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                           value: isMonoAudio,
-                          activeColor: const Color(0xFF4CAF50),
+                          activeColor: Theme.of(context).colorScheme.primary,
                           onChanged: _updateMonoAudio,
                         ),
                       ),
@@ -131,19 +164,19 @@ class _SettingsPageState extends State<SettingsPage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text("Audio Balance",
-                              style: TextStyle(color: Colors.white, fontSize: 18)),
+                          Text("Audio Balance",
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18)),
                           const SizedBox(height: 20),
                           Row(
                             children: [
-                              const Text("Left", style: TextStyle(color: Colors.white54)),
+                              Text("Left", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                               Expanded(
                                 child: AnimatedContainer(
                                   duration: const Duration(milliseconds: 200),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(20),
-                                    border: _isSliderApparentFocus ? Border.all(color: Colors.white, width: 2) : Border.all(color: Colors.transparent, width: 2),
-                                    boxShadow: _isSliderApparentFocus ? [BoxShadow(color: Colors.white.withAlpha(50), blurRadius: 10, spreadRadius: 1)] : [],
+                                    border: _isSliderApparentFocus ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : Border.all(color: Colors.transparent, width: 2),
+                                    boxShadow: _isSliderApparentFocus ? [BoxShadow(color: Theme.of(context).colorScheme.primary.withAlpha(50), blurRadius: 10, spreadRadius: 1)] : [],
                                   ),
                                   child: Focus(
                                     onFocusChange: (val) => setState(() => _isSliderApparentFocus = val),
@@ -174,14 +207,14 @@ class _SettingsPageState extends State<SettingsPage> {
                                       min: -1.0,
                                       max: 1.0,
                                       divisions: 20,
-                                      activeColor: const Color(0xFF4CAF50),
-                                      inactiveColor: Colors.white12,
+                                      activeColor: Theme.of(context).colorScheme.primary,
+                                      inactiveColor: Theme.of(context).colorScheme.onSurfaceVariant.withOpacity(0.1),
                                       onChanged: _updateAudioBalance,
                                     ),
                                   ),
                                 ),
                               ),
-                              const Text("Right", style: TextStyle(color: Colors.white54)),
+                              Text("Right", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                             ],
                           ),
                           Center(
@@ -191,7 +224,7 @@ class _SettingsPageState extends State<SettingsPage> {
                                   : (audioBalance < 0
                                       ? "Left ${(_abs(audioBalance) * 100).toInt()}%"
                                       : "Right ${(_abs(audioBalance) * 100).toInt()}%"),
-                              style: const TextStyle(color: Colors.white54, fontSize: 14),
+                              style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 14),
                             ),
                           ),
                         ],
@@ -208,16 +241,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   duration: const Duration(milliseconds: 200),
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(12),
-                    border: _isAutoLaunchApparentFocus ? Border.all(color: Colors.white, width: 2) : Border.all(color: Colors.transparent, width: 2),
-                    boxShadow: _isAutoLaunchApparentFocus ? [BoxShadow(color: Colors.white.withAlpha(50), blurRadius: 10, spreadRadius: 1)] : [],
+                    border: _isAutoLaunchApparentFocus ? Border.all(color: Theme.of(context).colorScheme.primary, width: 2) : Border.all(color: Colors.transparent, width: 2),
+                    boxShadow: _isAutoLaunchApparentFocus ? [BoxShadow(color: Theme.of(context).colorScheme.primary.withAlpha(50), blurRadius: 10, spreadRadius: 1)] : [],
                   ),
                   child: Focus(
                     onFocusChange: (val) => setState(() => _isAutoLaunchApparentFocus = val),
                     child: SwitchListTile(
-                      title: const Text("Auto Launch on TV Start", style: TextStyle(color: Colors.white, fontSize: 18)),
-                      subtitle: const Text("Automatically open the app when your device boots up.", style: TextStyle(color: Colors.white54)),
+                      title: Text("Auto Launch on TV Start", style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontSize: 18)),
+                      subtitle: Text("Automatically open the app when your device boots up.", style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant)),
                       value: isAutoLaunch,
-                      activeColor: const Color(0xFF4CAF50),
+                      activeColor: Theme.of(context).colorScheme.primary,
                       onChanged: saveAutoLaunch,
                     ),
                   ),
@@ -239,42 +272,165 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Widget _buildSettingsCard({required String title, required IconData icon, required Widget child}) {
-    return Container(
-      decoration: BoxDecoration(
-        color: const Color(0xFF1E1E28),
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.2),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          )
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              children: [
-                Icon(icon, color: const Color(0xFF4CAF50), size: 28),
-                const SizedBox(width: 12),
-                Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
+    return Builder(
+      builder: (context) => Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).brightness == Brightness.dark ? const Color(0xFF1E1E28) : Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Row(
+                children: [
+                  Icon(icon, color: Theme.of(context).colorScheme.primary, size: 28),
+                  const SizedBox(width: 12),
+                  Text(
+                    title,
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).colorScheme.onSurface,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
           const Divider(color: Colors.white12, height: 1),
           child,
         ],
       ),
+    ),
+  );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Theme option tile — appears inside the Theme settings card.
+// TV-safe: shows a visible focus ring on D-pad navigation.
+// ─────────────────────────────────────────────────────────────────────────────
+class _ThemeOptionTile extends StatefulWidget {
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final ThemeMode value;
+
+  const _ThemeOptionTile({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.value,
+  });
+
+  @override
+  State<_ThemeOptionTile> createState() => _ThemeOptionTileState();
+}
+
+class _ThemeOptionTileState extends State<_ThemeOptionTile> {
+  bool _isFocused = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider   = context.watch<ThemeProvider>();
+    final isSelected = provider.mode == widget.value;
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 160),
+      decoration: BoxDecoration(
+        color: isSelected
+            ? colorScheme.primary.withOpacity(0.08)
+            : Colors.transparent,
+        border: _isFocused
+            ? Border.all(color: colorScheme.primary, width: 2)
+            : Border.all(color: Colors.transparent, width: 2),
+        borderRadius: BorderRadius.circular(10),
+        boxShadow: _isFocused
+            ? [BoxShadow(color: colorScheme.primary.withOpacity(0.25), blurRadius: 12, spreadRadius: 1)]
+            : [],
+      ),
+      margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+      child: Focus(
+        onFocusChange: (val) => setState(() => _isFocused = val),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(10),
+          onTap: () => context.read<ThemeProvider>().setMode(widget.value),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+            child: Row(
+              children: [
+                // Mode icon
+                Icon(
+                  widget.icon,
+                  size: 26,
+                  color: isSelected
+                      ? colorScheme.primary
+                      : (isDark ? Colors.white54 : const Color(0xFF555555)),
+                ),
+                const SizedBox(width: 16),
+
+                // Label + subtitle
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        widget.label,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected
+                              ? colorScheme.primary
+                              : colorScheme.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        widget.subtitle,
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Radio check indicator
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 160),
+                  width: 22,
+                  height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isSelected ? colorScheme.primary : colorScheme.outline,
+                      width: 2,
+                    ),
+                    color: isSelected
+                        ? colorScheme.primary
+                        : Colors.transparent,
+                  ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      : null,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
+
