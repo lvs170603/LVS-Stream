@@ -163,6 +163,17 @@ class _VideoPlayerPageState extends State<VideoPlayerPage>
     _startOverlayTimer();
 
     try {
+      // Guard: if channel has no stream URL (web-only channel), show error
+      if (channel.url.isEmpty) {
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isError = true;
+          });
+        }
+        return;
+      }
+
       // Stop any background radio before opening video
       await audioHandler.stop();
       await _player.open(
