@@ -5,6 +5,7 @@ class Channel {
   final String url;
   final String category;
   final bool isActive;
+  final String webPlayerUrl; // optional AIO/embed URL for WebView playback
 
   Channel({
     required this.id,
@@ -13,6 +14,7 @@ class Channel {
     required this.url,
     required this.category,
     required this.isActive,
+    this.webPlayerUrl = '',
   });
 
   factory Channel.fromJson(Map<String, dynamic> json) {
@@ -22,7 +24,8 @@ class Channel {
       icon: json['icon'] ?? '',
       url: json['url'] ?? '',
       category: json['category'] ?? '',
-      isActive: json['isActive'] ?? true, // Default to true if older db entry doesn't have it
+      isActive: json['isActive'] ?? true,
+      webPlayerUrl: json['webPlayerUrl'] ?? '',
     );
   }
 
@@ -34,6 +37,7 @@ class Channel {
       'url': url,
       'category': category,
       'isActive': isActive,
+      'webPlayerUrl': webPlayerUrl,
     };
   }
 }

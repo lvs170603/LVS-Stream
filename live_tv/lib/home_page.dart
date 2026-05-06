@@ -7,6 +7,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'models/channel.dart';
 import 'services/api_service.dart';
 import 'video_player_page.dart';
+import 'web_player_page.dart';
 import 'radio_player_page.dart';
 import 'settings_page.dart';
 import 'services/ad_manager.dart';
@@ -480,33 +481,54 @@ class _ChannelCardState extends State<_ChannelCard> {
                       ),
                     );
                   } else {
-                    final index = widget.channels.indexOf(widget.channel);
-                    
-                    // Force landscape before navigating
-                    SystemChrome.setPreferredOrientations([
-                      DeviceOrientation.landscapeLeft,
-                      DeviceOrientation.landscapeRight,
-                    ]);
-                    
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => VideoPlayerPage(
-                          channels: widget.channels,
-                          initialIndex: index,
+                    // If channel has a dedicated webPlayerUrl → open WebView player
+                    // Otherwise fall back to the native media_kit video player
+                    if (widget.channel.webPlayerUrl.isNotEmpty) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => WebPlayerPage(
+                            channel: widget.channel,
+                          ),
                         ),
-                      ),
-                    ).then((_) {
-                      // Restore orientation behavior based on device type
-                      if (!isGlobalTVDevice) {
-                        SystemChrome.setPreferredOrientations([
-                          DeviceOrientation.portraitUp,
-                          DeviceOrientation.portraitDown,
-                          DeviceOrientation.landscapeLeft,
-                          DeviceOrientation.landscapeRight,
-                        ]);
-                      }
-                    });
+                      ).then((_) {
+                        if (!isGlobalTVDevice) {
+                          SystemChrome.setPreferredOrientations([
+                            DeviceOrientation.portraitUp,
+                            DeviceOrientation.portraitDown,
+                            DeviceOrientation.landscapeLeft,
+                            DeviceOrientation.landscapeRight,
+                          ]);
+                        }
+                      });
+                    } else {
+                      final index = widget.channels.indexOf(widget.channel);
+
+                      // Force landscape before navigating to native player
+                      SystemChrome.setPreferredOrientations([
+                        DeviceOrientation.landscapeLeft,
+                        DeviceOrientation.landscapeRight,
+                      ]);
+
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VideoPlayerPage(
+                            channels: widget.channels,
+                            initialIndex: index,
+                          ),
+                        ),
+                      ).then((_) {
+                        if (!isGlobalTVDevice) {
+                          SystemChrome.setPreferredOrientations([
+                            DeviceOrientation.portraitUp,
+                            DeviceOrientation.portraitDown,
+                            DeviceOrientation.landscapeLeft,
+                            DeviceOrientation.landscapeRight,
+                          ]);
+                        }
+                      });
+                    }
                   }
                 });
               });

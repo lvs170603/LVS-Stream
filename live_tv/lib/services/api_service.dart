@@ -24,4 +24,24 @@ class ApiService {
       throw Exception('Error fetching channels: $e');
     }
   }
+
+  /// Fetches the stream/webPlayer URL for a specific channel from the backend.
+  /// Returns the URL string. Throws an exception on failure.
+  Future<String> fetchStreamUrl(String channelId) async {
+    try {
+      final response = await http.get(
+        Uri.parse('$baseUrl/channels/$channelId/stream-url'),
+      );
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final url = data['streamUrl'] as String? ?? '';
+        if (url.isEmpty) throw Exception('Stream URL is empty for this channel');
+        return url;
+      } else {
+        throw Exception('Backend error ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Failed to fetch stream URL: $e');
+    }
+  }
 }
